@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Administrativo · FixLens</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%230a1730'/%3E%3Ctext x='50' y='66' font-size='48' text-anchor='middle' fill='%23c9a227' font-family='Georgia'%3EF%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="brand-logo">F</div>
+      <h1>FixLens</h1>
+      <p class="sub">Panel Administrativo</p>
+      <div class="login-error" id="loginError"></div>
+      <form id="loginForm">
+        <div class="field">
+          <label for="username">Usuario</label>
+          <input type="text" id="username" name="username" placeholder="admin" required autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-gold" style="width:100%;padding:13px">Ingresar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div class="app" id="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-logo">F</div>
+        <div>
+          <div class="brand-name">Fix<span>Lens</span></div>
+          <div class="brand-sub">Administración</div>
+        </div>
+      </div>
+      <nav>
+        <a href="#" data-tab="productos" class="active">Productos</a>
+        <a href="#" data-tab="resenas">Reseñas</a>
+        <a href="#" data-tab="pedidos">Pedidos</a>
+        <a href="#" data-tab="configuracion">Configuración</a>
+      </nav>
+      <div class="logout">
+        <a href="#" id="logoutBtn">Cerrar sesión</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="main-header">
+        <div>
+          <h2 id="tabTitle">Productos</h2>
+          <p id="tabSub">Gestiona el catálogo de monturas</p>
+        </div>
+        <div class="actions" id="mainActions"></div>
+      </div>
+
+      <!-- Products -->
+      <div class="tab-pane active" id="pane-productos">
+        <div class="stats-row">
+          <div class="stat-card"><span class="ic">🧿</span><div class="num" id="stProducts">0</div><div class="lbl">Total productos</div></div>
+          <div class="stat-card"><span class="ic">✅</span><div class="num" id="stActive">0</div><div class="lbl">Activos</div></div>
+          <div class="stat-card"><span class="ic">⭐</span><div class="num" id="stReviews">0</div><div class="lbl">Reseñas publicadas</div></div>
+          <div class="stat-card"><span class="ic">🕒</span><div class="num" id="stPending">0</div><div class="lbl">Reseñas pendientes</div></div>
+        </div>
+        <div class="card">
+          <h3>Catálogo de monturas</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Imagen</th><th>Producto</th><th>Género</th><th>Estado</th><th>Etiquetas</th><th>Acciones</th></tr>
+              </thead>
+              <tbody id="productsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reviews -->
+      <div class="tab-pane" id="pane-resenas">
+        <div class="card">
+          <h3>Reseñas de clientes</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Cliente</th><th>Calificación</th><th>Comentario</th><th>Estado</th><th>Acciones</th></tr>
+              </thead>
+              <tbody id="reviewsBody"></tbody>
+            </table>
+          </div>
+          <p class="hint">Las reseñas nuevas llegan como "Pendiente" hasta que las apruebes.</p>
+        </div>
+      </div>
+
+      <!-- Orders -->
+      <div class="tab-pane" id="pane-pedidos">
+        <div class="card">
+          <h3>Pedidos y cotizaciones</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Referencia</th><th>Producto</th><th>Cliente</th><th>Correo</th><th>Monto</th><th>Estado</th></tr>
+              </thead>
+              <tbody id="ordersBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="tab-pane" id="pane-configuracion">
+        <div class="card">
+          <h3>Datos de la tienda</h3>
+          <form id="settingsForm">
+            <div class="field">
+              <label>WhatsApp de la tienda</label>
+              <input type="text" name="s_whatsapp" placeholder="573204658078">
+              <p class="hint">Código de país + número, sin "+". Ej: 573204658078</p>
+            </div>
+            <div class="field">
+              <label>Dirección</label>
+              <input type="text" name="s_address" placeholder="Cra 7 # 18-42 Local 236-1, Centro Comercial Monserrate...">
+            </div>
+            <div class="field">
+              <label>Horario de atención</label>
+              <input type="text" name="s_hours" placeholder="Lunes a Sábado: 9:00 am - 8:00 pm · Domingo: 10:00 am - 6:00 pm">
+            </div>
+            <hr style="border:none;border-top:1px solid var(--line-soft);margin:24px 0">
+            <h3 style="font-size:18px">Pasarela de pago · Wompi (Colombia)</h3>
+            <p class="hint">Configura tus llaves de Wompi para aceptar pagos con PSE y tarjetas en COP. Déjalo vacío para que los clientes paguen por WhatsApp.</p>
+            <div class="field">
+              <label>Llave pública (Public Key)</label>
+              <input type="text" name="w_public" placeholder="pub_test_...">
+            </div>
+            <div class="field">
+              <label>Llave privada (Private Key)</label>
+              <input type="password" name="w_private" placeholder="prv_test_...">
+            </div>
+            <div class="field">
+              <label>Llave de integridad (Integrity Key)</label>
+              <input type="password" name="w_integrity" placeholder="integrity key...">
+            </div>
+            <div class="field">
+              <label>Entorno</label>
+              <select name="w_env">
+                <option value="test">Pruebas (Sandbox)</option>
+                <option value="production">Producción</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-gold">Guardar cambios</button>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- PRODUCT MODAL -->
+  <div class="modal-backdrop" id="productModal">
+    <div class="modal">
+      <button class="modal-close" data-close>✕</button>
+      <h3 id="productModalTitle">Nuevo producto</h3>
+      <form id="productForm">
+        <div class="field">
+          <label>Nombre *</label>
+          <input type="text" name="p_name" required placeholder="Ej: Armazón Tommy Hilfiger BRU">
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Marca</label>
+            <input type="text" name="p_brand" placeholder="Tommy Hilfiger">
+          </div>
+          <div class="field">
+            <label>Categoría</label>
+            <input type="text" name="p_category" placeholder="Montura">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Género</label>
+            <select name="p_gender">
+              <option value="">Unisex</option>
+              <option value="Hombre">Hombre</option>
+              <option value="Mujer">Mujer</option>
+              <option value="Niño">Niño</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Imagen</label>
+            <select name="p_image">
+              <option value="">-- Sin imagen --</option>
+            </select>
+            <p class="hint">Selecciona una imagen ya subida a la carpeta /images.</p>
+          </div>
+        </div>
+        <div class="field">
+          <label>Descripción</label>
+          <textarea name="p_description" rows="3" placeholder="Describe el producto..."></textarea>
+        </div>
+        <div class="field">
+          <label>Características (separadas por |)</label>
+          <textarea name="p_features" rows="3" placeholder="Color: Azul|Material: Acetato|Incluye: Estuche"></textarea>
+          <p class="hint">Cada característica usa el formato "Etiqueta: valor". Sepáralas con el símbolo |.</p>
+        </div>
+        <div class="field">
+          <label>Etiquetas (separadas por coma)</label>
+          <input type="text" name="p_tags" placeholder="montura,acetato,unisex">
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Orden de aparición</label>
+            <input type="number" name="p_sort" value="0">
+          </div>
+          <div class="field">
+            <label>Estado</label>
+            <div class="toggle">
+              <label class="switch">
+                <input type="checkbox" name="p_active" checked>
+                <span class="slider"></span>
+              </label>
+              <span>Visible en la web</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" data-close>Cancelar</button>
+          <button type="submit" class="btn btn-gold">Guardar producto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/assets/js/admin.js"></script>
+</body>
+</html>

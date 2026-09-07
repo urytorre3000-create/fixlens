@@ -1,5 +1,8 @@
 /* =========================================================
    FIXLENS · Public site logic
+   Funciona en dos modos:
+   - Con backend (localhost:8000): usa la API /api/*
+   - Estático (GitHub Pages): usa los datos incrustados en data.js
    ========================================================= */
 (function () {
   "use strict";
@@ -18,6 +21,19 @@
     },
     selectedProduct: null,
   };
+
+  // Datos incrustados (GitHub Pages) + detección de backend (localhost).
+  const STATIC = window.FIXLENS_DATA || null;
+  let API_OK = false;
+
+  async function detectApi() {
+    try {
+      const r = await fetch(API + "/api/settings-public");
+      API_OK = r.ok;
+    } catch (e) {
+      API_OK = false;
+    }
+  }
 
   const ICONS = {
     phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>',
@@ -70,19 +86,22 @@
 
   /* ---------- Settings ---------- */
   async function loadSettings() {
-    try {
-      const d = await fetchJSON("/api/settings-public");
-      if (d && d.whatsapp) state.settings.whatsapp = d.whatsapp;
-      if (d && d.address) state.settings.address = d.address;
-      if (d && d.hours) state.settings.hours = d.hours;
-    } catch (e) {}
+    if (API_OK) {
+      try {
+        const d = await fetchJSON("/api/settings-public");
+        if (d && d.whatsapp) state.settings.whatsapp = d.whatsapp;
+        if (d && d.address) state.settings.address = d.address;
+        if (d && d.hours) state.settings.hours = d.hours;
+      } catch (e) {}
+    } else if (STATIC) {
+      state.settings.whatsapp = STATIC.whatsapp || state.settings.whatsapp;
+      state.settings.address = STATIC.address || state.settings.address;
+      state.settings.hours = STATIC.hours || state.settings.hours;
+    }
     // Apply to page
-    const addrEls = $$("[data-address]");
-    addrEls.forEach((el) => (el.textContent = state.settings.address));
-    const hrsEls = $$("[data-hours]");
-    hrsEls.forEach((el) => (el.textContent = state.settings.hours));
-    const waEls = $$("[data-wa]");
-    waEls.forEach((el) => {
+    $$("[data-address]").forEach((el) => (el.textContent = state.settings.address));
+    $$("[data-hours]").forEach((el) => (el.textContent = state.settings.hours));
+    $$("[data-wa]").forEach((el) => {
       el.setAttribute("href", waLink("Hola FixLens 👓, quiero más información."));
     });
   }
@@ -91,11 +110,15 @@
   async function loadProducts() {
     const grid = $("#productsGrid");
     grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#8a8f98">Cargando colección…</div>';
-    try {
-      const d = await fetchJSON("/api/products");
-      state.products = d.products || [];
-    } catch (e) {
-      state.products = [];
+    if (API_OK) {
+      try {
+        const d = await fetchJSON("/api/products");
+        state.products = d.products || [];
+      } catch (e) {
+        state.products = [];
+      }
+    } else if (STATIC) {
+      state.products = STATIC.products || [];
     }
     renderProducts();
   }
@@ -116,7 +139,7 @@
                 <span class="badge">${esc(p.brand)}</span>
                 ${p.gender ? `<span class="badge gold">${esc(p.gender)}</span>` : ""}
               </div>
-              <img src="/images/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">
+              <img src="images/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">
             </div>
             <div class="product-body">
               <div class="product-brand">${esc(p.brand)}</div>
@@ -148,7 +171,7 @@
       })
       .join("");
     const tags = (p.tags || []).map((t) => `<span class="tag">${esc(t)}</span>`).join("");
-    $("#productModal .modal-media").innerHTML = `<img src="/images/${esc(p.image)}" alt="${esc(p.name)}">`;
+    $("#productModal .modal-media").innerHTML = `<img src="images/${esc(p.image)}" alt="${esc(p.name)}">`;
     $("#productModal .modal-body").innerHTML = `
       <button class="modal-close" data-close>✕</button>
       <div class="modal-brand">${esc(p.brand)}</div>
@@ -183,7 +206,7 @@
     const p = state.products.find((x) => String(x.id) === String(id));
     if (!p) return;
     state.selectedProduct = p;
-    $("#quoteProductImg").src = "/images/" + p.image;
+    $("#quoteProductImg").src = "images/" + p.image;
     $("#quoteProductName").textContent = p.name;
     $("#quoteProductBrand").textContent = p.brand + " · " + (p.category || "Montura");
     $("#quoteModal").classList.add("open");
@@ -197,41 +220,55 @@
     const btn = f.querySelector("button[type=submit]");
     btn.disabled = true;
     btn.textContent = "Enviando…";
-    const body = {
-      product_name: p ? p.name : "",
-      customer_name: f.name.value,
-      customer_phone: f.phone.value,
-      customer_email: f.email.value,
-      customer_address: f.address.value,
-    };
-    try {
-      const d = await fetchJSON("/api/order", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-      if (d && d.whatsapp) {
-        toast("¡Listo! Te estamos llevando a WhatsApp…", true);
-        setTimeout(() => { window.open(d.whatsapp, "_blank"); }, 600);
-        f.reset();
-        closeModal();
-      } else {
-        throw new Error("Sin respuesta");
+    if (API_OK) {
+      const body = {
+        product_name: p ? p.name : "",
+        customer_name: f.name.value,
+        customer_phone: f.phone.value,
+        customer_email: f.email.value,
+        customer_address: f.address.value,
+      };
+      try {
+        const d = await fetchJSON("/api/order", { method: "POST", body: JSON.stringify(body) });
+        if (d && d.whatsapp) {
+          toast("¡Listo! Te estamos llevando a WhatsApp…", true);
+          setTimeout(() => { window.open(d.whatsapp, "_blank"); }, 600);
+          f.reset();
+          closeModal();
+        } else {
+          toast("Ocurrió un error, inténtalo de nuevo.");
+        }
+      } catch (e) {
+        toast("Ocurrió un error, inténtalo de nuevo.");
       }
-    } catch (e) {
-      toast("Ocurrió un error, inténtalo de nuevo.");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Enviar cotización";
+    } else {
+      const msg =
+        `*Nueva cotización en FixLens*\n` +
+        `Producto: ${p ? p.name : ""}\n` +
+        `Nombre: ${f.name.value}\n` +
+        `Teléfono: ${f.phone.value}\n` +
+        `Correo: ${f.email.value}\n` +
+        `Dirección: ${f.address.value}`;
+      toast("¡Listo! Te estamos llevando a WhatsApp…", true);
+      setTimeout(() => { window.open(waLink(msg), "_blank"); }, 600);
+      f.reset();
+      closeModal();
     }
+    btn.disabled = false;
+    btn.textContent = "Enviar cotización";
   }
 
   /* ---------- Reviews ---------- */
   async function loadReviews() {
     let reviews = [];
-    try {
-      const d = await fetchJSON("/api/reviews");
-      reviews = d.reviews || [];
-    } catch (e) {}
+    if (API_OK) {
+      try {
+        const d = await fetchJSON("/api/reviews");
+        reviews = d.reviews || [];
+      } catch (e) {}
+    } else if (STATIC) {
+      reviews = STATIC.reviews || [];
+    }
     state.reviews = reviews;
     renderReviews();
   }
@@ -239,7 +276,6 @@
   function renderReviews() {
     const grid = $("#reviewsGrid");
     const avgWrap = $("#avgScore");
-    const avgWrap2 = $("#avgScore2");
     if (!state.reviews.length) {
       grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:#8a8f98">Sé el primero en dejar tu reseña.</div>';
       if (avgWrap) avgWrap.textContent = "—";
@@ -247,7 +283,6 @@
     }
     const avg = state.reviews.reduce((a, r) => a + (r.rating || 5), 0) / state.reviews.length;
     if (avgWrap) avgWrap.textContent = avg.toFixed(1);
-    if (avgWrap2) avgWrap2.textContent = avg.toFixed(1);
     grid.innerHTML = state.reviews
       .map((r) => {
         const initial = (r.name || "?").trim().charAt(0).toUpperCase();
@@ -275,21 +310,32 @@
       rating: parseInt($("#starInput") ? $("#starInput").dataset.value : "5", 10) || 5,
       comment: f.rcomment.value,
     };
-    try {
-      const d = await fetchJSON("/api/reviews", { method: "POST", body: JSON.stringify(body) });
-      if (d && d.ok) {
-        toast("¡Gracias! Tu reseña será publicada tras verificación.", true);
-        f.reset();
-        resetStarInput();
-      } else {
-        toast("Revisa tus datos e inténtalo de nuevo.");
+    if (!API_OK) {
+      const msg =
+        `*Nueva reseña en FixLens*\n` +
+        `Nombre: ${body.name}\n` +
+        `Calificación: ${body.rating}/5\n` +
+        `Comentario: ${body.comment}`;
+      toast("¡Gracias! Tu reseña se enviará por WhatsApp.", true);
+      setTimeout(() => { window.open(waLink(msg), "_blank"); }, 600);
+      f.reset();
+      resetStarInput();
+    } else {
+      try {
+        const d = await fetchJSON("/api/reviews", { method: "POST", body: JSON.stringify(body) });
+        if (d && d.ok) {
+          toast("¡Gracias! Tu reseña será publicada tras verificación.", true);
+          f.reset();
+          resetStarInput();
+        } else {
+          toast("Revisa tus datos e inténtalo de nuevo.");
+        }
+      } catch (e) {
+        toast("No se pudo enviar la reseña.");
       }
-    } catch (e) {
-      toast("No se pudo enviar la reseña.");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Enviar reseña";
     }
+    btn.disabled = false;
+    btn.textContent = "Enviar reseña";
   }
 
   /* ---------- Star input ---------- */
@@ -324,7 +370,6 @@
       burger.addEventListener("click", () => links.classList.toggle("open"));
     }
     $$(".nav-links a").forEach((a) => a.addEventListener("click", () => links.classList.remove("open")));
-    // active link highlight on scroll
     const sections = $$("section[id]");
     const navMap = {};
     $$(".nav-links a[href^='#']").forEach((a) => (navMap[a.getAttribute("href").slice(1)] = a));
@@ -339,15 +384,7 @@
   }
 
   /* ---------- Init ---------- */
-  document.addEventListener("DOMContentLoaded", () => {
-    // Wire floating & topbar WA buttons
-    document.querySelectorAll('[data-wa]').forEach((el) => {
-      el.addEventListener("click", (e) => {
-        // allow default navigation to wa.me
-      });
-    });
-
-    // Product grid delegation
+  document.addEventListener("DOMContentLoaded", async () => {
     $("#productsGrid").addEventListener("click", (e) => {
       const view = e.target.closest("[data-view]");
       const quote = e.target.closest("[data-quote]");
@@ -355,29 +392,26 @@
       else if (quote) openQuote(quote.getAttribute("data-quote"));
     });
 
-    // Modal delegation (product modal)
     $("#productModal").addEventListener("click", (e) => {
       if (e.target.closest("[data-close]") || e.target.classList.contains("modal-backdrop")) closeModal();
       const quote = e.target.closest("[data-quote]");
       if (quote) openQuote(quote.getAttribute("data-quote"));
     });
 
-    // Quote modal
     $("#quoteModal").addEventListener("click", (e) => {
       if (e.target.closest("[data-close]") || e.target.classList.contains("modal-backdrop")) closeModal();
     });
     $("#quoteForm").addEventListener("submit", submitQuote);
     $("#reviewForm").addEventListener("submit", submitReview);
 
-    // Review form star input
     setupStarInput();
-
     setupNav();
+
+    await detectApi();
     loadSettings();
     loadProducts();
     loadReviews();
 
-    // footer year
     const y = $("#year");
     if (y) y.textContent = new Date().getFullYear();
   });
